@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer ></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Diplomata+SC&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="header_bg" style="background-image: url('images/BG.jpg')"></div>
+
+    <header class="header">
+        <div class="header__inner">
+            
+            <div class="header__logo">
+                <a class="logo" href="index.html">
+                    <img src="images/logo.png" alt="Homepage">
+                </a>
+            </div>
+            
+    
+            <nav class="header__nav">
+                <ul class="header__menu">
+                    <li><a href="projects.html">PROJECTS</a></li>
+                    <li><a href="gallery.html">GALLERY</a></li>
+                    <li><a href="contact.html">CONTACT</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    
+    <div class="connection">
+        <h1>ESP32 WebSocket Control</h1>
+        <label class="switch">
+            <input type="checkbox" id="toggleSwitch">
+            <span class="slider"></span>
+        </label>
+        <p id="status">Disconnected from the server</p>
+
+        <script>
+            let ws;
+            toggleSwitch = document.getElementById('toggleSwitch');
+            statusText = document.getElementById('status');
+
+            // Function to connect to the WebSocket server
+            function connectWebSocket() {
+                if (ws) {
+                    ws.close(); // Close any existing connection before reconnecting
+                }
+
+                // Create a new WebSocket instance with the ESP32's IP address
+                ws = new WebSocket('ws://10.1.224.64:81'); // Replace with your ESP32's IP address
+
+                ws.onopen = () => {
+                    console.log('Connected to ESP32 WebSocket');
+                    statusText.textContent = 'Connected to the server';
+                };
+
+                ws.onerror = (error) => {
+                console.error('WebSocket Error:', error);
+                    alert('Failed to connect to ESP32. Please check the connection.');
+                };
+            }
+
+            // Function to disconnect the WebSocket
+            // Function to disconnect the WebSocket connection
+            function disconnectWebSocket() {
+                if (ws) {
+                    // Set the onclose event handler to update the UI when the connection closes
+                    ws.onclose = () => {
+                        console.log('Disconnected from ESP32 WebSocket');
+                        statusText.textContent = 'Disconnected from the server';
+                        toggleSwitch.checked = false; // Reflect the disconnected state in the UI
+                    };
+
+                    // Close the WebSocket connection
+                    ws.close();
+                    console.log('Closing WebSocket connection...');
+                } else {
+                    console.log('WebSocket is not connected.');
+                }
+            }
+
+
+            // Add event listener to the toggle switch
+            toggleSwitch.addEventListener('change', () => {
+                if (toggleSwitch.checked) {
+                 connectWebSocket(); // Connect when the switch is turned on
+                } else {
+                    disconnectWebSocket(); // Disconnect when the switch is turned off
+                }
+            });
+
+        </script>
+
+    </div>
+
+    <div class="intensity-control">
+        <h2 style="color: #FC9E6C;">Laser Intensity</h2>
+        <input type="range" min="0" max="255" value="0" id="intensitySlider">
+        <p class="intensity-value" id="intensityValue">Intensity: 0</p>
+
+        <script>
+            // Send the slider value to the ESP32 when it changes
+            intensitySlider.addEventListener('input', () => {
+                const intensity = intensitySlider.value;
+                intensityValue.textContent = `Intensity: ${intensity}`;
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(intensity); // Send the intensity value as a string
+                }
+            });
+        </script>
+    </div>
+     
+    <div>
+        <h1>ESP32 Distance Monitor</h1>
+        <p class="distance-display">Distance: <span id="distanceValue">--</span> cm</p>
+        <p class="status" id="status">Disconnected</p>
+
+        <script>
+            let ws;
+            const distanceValue = document.getElementById('distanceValue');
+            const statusText = document.getElementById('status');
+
+            function connectWebSocket() {
+
+                ws.onopen = () => {
+                    console.log('Connected to WebSocket server');
+                    statusText.textContent = 'Connected';
+                    statusText.style.color = 'green';
+                };
+
+                ws.onmessage = (event) => {
+                    console.log('Received:', event.data);
+        
+                    // Check if the message contains distance data
+                    if (event.data.startsWith('distance:')) {
+                        const distance = event.data.split(':')[1];
+                        distanceValue.textContent = distance;
+                    }
+                };
+
+                ws.onclose = () => {
+                    console.log('Disconnected from WebSocket server');
+                    statusText.textContent = 'Disconnected';
+                    statusText.style.color = 'red';
+                };
+
+                ws.onerror = (error) => {
+                    console.error('WebSocket Error:', error);
+                };
+            }
+
+            // Automatically connect when the page loads
+            window.onload = connectWebSocket;
+        </script>
+    </div>
+    
+
+</body>
+</html>
